@@ -234,6 +234,12 @@ function App() {
   });
   const [reviewEditingId, setReviewEditingId] = useState<number | null>(null);
 
+  // Вспомогательная функция для получения значения из ExtraField
+  const getExtraFieldValue = (mask: Mask, key: string): string => {
+    const field = mask.ExtraField?.find((f) => f.key === key);
+    return field ? field.value : "-";
+  };
+
   // Функции для авторизации
   const handleLogin = async (): Promise<void> => {
     try {
@@ -251,12 +257,17 @@ function App() {
     }
   };
 const handleMaskEdit = (mask: any): void => {
+  console.log("🔍 Отладка handleMaskEdit:");
+  console.log("mask.ExtraField:", mask.ExtraField);
+  
   const getExtraValue = (key: string) => {
     const field = mask.ExtraField?.find((f: any) => f.key === key);
-    return field ? field.value : "";
+    const value = field ? field.value : "";
+    console.log(`getExtraValue("${key}"):`, value);
+    return value;
   };
 
-  setMaskForm({
+  const formData = {
     model: mask.name || "",
     fullName: mask.instructions || "",
     imageUrl: mask.imageUrl || "",
@@ -270,12 +281,12 @@ const handleMaskEdit = (mask: any): void => {
     responseTime: getExtraValue("Время срабатывания") || "",
     operatingTemp: mask.operatingTemp || "",
     shadeAdjustment: getExtraValue("Регулировка затемнения") || "",
-    batteryIndicator: getExtraValue("Индикатор батареи") || "",
+    batteryIndicator: getExtraValue("Индикатор низкого заряда батареи") || "",
     sensitivityAdjustment: getExtraValue("Регулировка чувствительности") || "",
     delayAdjustment: getExtraValue("Регулировка времени задержки") || "",
     testButton: getExtraValue("Кнопка тест") || "",
-    hdColorTech: getExtraValue("HD COLOR") || "",
-    gradientFunction: getExtraValue("GRADIENT") || "",
+    hdColorTech: getExtraValue("Технология естественной цветопередачи HD COLOR") || "",
+    gradientFunction: getExtraValue("Функция «GRADIENT»") || "",
     memoryModes: getExtraValue("Память режимов") || "",
     opticalClass: getExtraValue("Оптический класс") || "",
     headband: getExtraValue("Оголовье") || "",
@@ -286,7 +297,10 @@ const handleMaskEdit = (mask: any): void => {
     packageHeight: mask.packageHeight || "",
     packageWidth: mask.packageWidth || "",
     packageLength: mask.packageLength || "",
-  });
+  };
+  
+  console.log("formData.viewWindowSize:", formData.viewWindowSize);
+  setMaskForm(formData);
 
   setExtraFields(
     mask.ExtraField?.filter(
@@ -295,12 +309,12 @@ const handleMaskEdit = (mask: any): void => {
           "Размер смотрового окна",
           "Время срабатывания",
           "Регулировка затемнения",
-          "Индикатор батареи",
+          "Индикатор низкого заряда батареи",
           "Регулировка чувствительности",
           "Регулировка времени задержки",
           "Кнопка тест",
-          "HD COLOR",
-          "GRADIENT",
+          "Технология естественной цветопередачи HD COLOR",
+          "Функция «GRADIENT»",
           "Память режимов",
           "Оптический класс",
           "Оголовье",
@@ -383,12 +397,71 @@ const handleMaskEdit = (mask: any): void => {
 
   const handleMaskSubmit = async (): Promise<void> => {
     try {
+      // Отладочная информация
+      console.log("🔍 Отладка handleMaskSubmit:");
+      console.log("maskForm.viewWindowSize:", maskForm.viewWindowSize);
+      console.log("maskEditingId:", maskEditingId);
+      
+      // Собираем все дополнительные поля в extraFields
+      const extraFieldsData = [
+        // Основные поля формы, которые должны быть в ExtraField
+        { key: "Размер смотрового окна", value: maskForm.viewWindowSize },
+        { key: "Время срабатывания", value: maskForm.responseTime },
+        { key: "Регулировка затемнения", value: maskForm.shadeAdjustment },
+        { key: "Индикатор низкого заряда батареи", value: maskForm.batteryIndicator },
+        { key: "Регулировка чувствительности", value: maskForm.sensitivityAdjustment },
+        { key: "Регулировка времени задержки", value: maskForm.delayAdjustment },
+        { key: "Кнопка тест", value: maskForm.testButton },
+        { key: "Технология естественной цветопередачи HD COLOR", value: maskForm.hdColorTech },
+        { key: "Функция «GRADIENT»", value: maskForm.gradientFunction },
+        { key: "Память режимов", value: maskForm.memoryModes },
+        { key: "Оптический класс", value: maskForm.opticalClass },
+        { key: "Оголовье", value: maskForm.headband },
+        // Дополнительные поля, добавленные пользователем
+        ...extraFields,
+      ];
+      
+      console.log("📋 Все поля до фильтрации:", extraFieldsData);
+      
+      const allExtraFields = extraFieldsData.filter(field => {
+        const isValid = field.value !== undefined && field.value !== null;
+        if (!isValid) {
+          console.log(`❌ Поле "${field.key}" исключено из-за пустого значения:`, field.value);
+        } else {
+          console.log(`✅ Поле "${field.key}" включено:`, field.value);
+        }
+        return isValid;
+      });
+      
+      console.log("allExtraFields после фильтрации:", allExtraFields);
+
       const payload = {
-        ...maskForm,
-        extraFields,
+        // Основные поля маски
+        model: maskForm.model,
+        fullName: maskForm.fullName,
+        article: maskForm.article,
+        imageUrl: maskForm.imageUrl,
+        visibleArea: maskForm.visibleArea,
         sensorsCount: maskForm.sensorsCount ? parseInt(maskForm.sensorsCount) : null,
+        shadeLevel: maskForm.shadeLevel,
+        lightState: maskForm.lightState,
+        weldingTypes: maskForm.weldingTypes,
+        operatingTemp: maskForm.operatingTemp,
+        body: maskForm.body,
+        sFireProtection: maskForm.sFireProtection,
+        weight: maskForm.weight,
+        retailPrice: maskForm.retailPrice,
+        packageHeight: maskForm.packageHeight,
+        packageWidth: maskForm.packageWidth,
+        packageLength: maskForm.packageLength,
+        // Дополнительные поля
+        extraFields: allExtraFields,
       };
+      
+      console.log("📤 Отправляемый payload:", payload);
+      
       if (maskEditingId) {
+        console.log(`🔄 Обновление маски с ID: ${maskEditingId}`);
         await axios.put(`${API_URL}/admin/masks/${maskEditingId}`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -1160,22 +1233,24 @@ const handleMaskEdit = (mask: any): void => {
     "-"
   )}
 </td><td className="p-4 text-black">{mask.description ?? "-"}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Размер смотрового окна")}</td>
 <td className="p-4 text-black">{mask.viewArea ?? "-"}</td>
 <td className="p-4 text-black">{mask.sensors ?? "-"}</td>
 <td className="p-4 text-black">{mask.shadeRange ?? "-"}</td>
 <td className="p-4 text-black">{mask.power ?? "-"}</td>
 <td className="p-4 text-black">{mask.weldingTypes ?? "-"}</td>
-<td className="p-4 text-black">{mask.responseTime ?? "-"}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Время срабатывания")}</td>
 <td className="p-4 text-black">{mask.operatingTemp ?? "-"}</td>
-<td className="p-4 text-black">{mask.batteryIndicator ?? "-"}</td>
-<td className="p-4 text-black">{mask.sensitivityAdjustment ?? "-"}</td>
-<td className="p-4 text-black">{mask.delayAdjustment ?? "-"}</td>
-<td className="p-4 text-black">{mask.testButton ?? "-"}</td>
-<td className="p-4 text-black">{mask.hdColorTech ?? "-"}</td>
-<td className="p-4 text-black">{mask.gradientFunction ?? "-"}</td>
-<td className="p-4 text-black">{mask.memoryModes ?? "-"}</td>
-<td className="p-4 text-black">{mask.opticalClass ?? "-"}</td>
-<td className="p-4 text-black">{mask.headband ?? "-"}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Регулировка затемнения")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Индикатор низкого заряда батареи")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Регулировка чувствительности")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Регулировка времени задержки")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Кнопка тест")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Технология естественной цветопередачи HD COLOR")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Функция «GRADIENT»")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Память режимов")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Оптический класс")}</td>
+<td className="p-4 text-black">{getExtraFieldValue(mask, "Оголовье")}</td>
 <td className="p-4 text-black">{mask.material ?? "-"}</td>
 <td className="p-4 text-black">{mask.sFireProtection ?? "-"}</td>
 <td className="p-4 text-black">{mask.weight ?? "-"}</td>
